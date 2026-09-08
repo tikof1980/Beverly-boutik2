@@ -74,6 +74,13 @@ nav#main-nav a.active,nav#main-nav a:hover{background:var(--terracotta);color:#f
   .brand-slogan{display:none;}
 }
 
+/* STOCK TICKER */
+.stock-ticker{background:var(--danger);color:#fff;overflow:hidden;position:relative;display:flex;align-items:center;padding:8px 44px 8px 0;}
+.stock-ticker-track{display:inline-block;white-space:nowrap;padding-left:100%;animation:ticker-scroll 18s linear infinite;font-size:13px;font-weight:700;}
+.stock-ticker-track span{margin-right:60px;}
+@keyframes ticker-scroll{from{transform:translateX(0);}to{transform:translateX(-100%);}}
+.ticker-speak-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,0.25);color:#fff;font-size:15px;z-index:2;}
+
 /* HERO */
 .hero{position:relative;background:linear-gradient(135deg,var(--terracotta-dark),var(--terracotta));color:#fff;padding:56px 18px;text-align:center;overflow:hidden;}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12), transparent 50%);}
@@ -135,6 +142,8 @@ footer{background:var(--terracotta-dark);color:#f3e2ce;padding:36px 18px 18px;ma
 .footer-bottom{text-align:center;font-size:12px;color:#d6b795;margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.12);}
 .social-row{display:flex;gap:10px;margin-top:8px;}
 .social-row a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.social-row-lg{display:flex;gap:14px;justify-content:center;margin-top:14px;}
+.social-row-lg a{width:52px;height:52px;border-radius:50%;background:var(--terracotta);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--shadow-sm);}
 
 /* FLOATING WHATSAPP */
 .wa-float{position:fixed;bottom:20px;right:16px;z-index:60;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 6px 16px rgba(0,0,0,0.25);}
@@ -275,6 +284,11 @@ table th{background:var(--cream);font-size:11px;text-transform:uppercase;color:v
   </nav>
 </header>
 
+<div id="stock-ticker" class="stock-ticker hidden">
+  <button id="ticker-speak-btn" class="ticker-speak-btn" title="Écouter l'alerte">🔊</button>
+  <div class="stock-ticker-track" id="stock-ticker-track"></div>
+</div>
+
 <main id="main-view"></main>
 
 <footer>
@@ -283,9 +297,10 @@ table th{background:var(--cream);font-size:11px;text-transform:uppercase;color:v
       <h4>BEVERLY BOUTIK</h4>
       <p>L'élégance au quotidien. Vêtements féminins élégants et modernes, livrés partout en Côte d\'Ivoire.</p>
       <div class="social-row">
-        <a href="#" title="TikTok">🎵</a>
-        <a href="#" title="Facebook">📘</a>
-        <a href="#" title="Instagram">📷</a>
+        <a href="#" target="_blank" class="social-tiktok hidden" title="TikTok">🎵</a>
+        <a href="#" target="_blank" class="social-facebook hidden" title="Facebook">📘</a>
+        <a href="#" target="_blank" class="social-instagram hidden" title="Instagram">📷</a>
+        <a href="#" target="_blank" class="social-whatsapp" title="WhatsApp">💬</a>
       </div>
     </div>
     <div>
@@ -316,6 +331,7 @@ table th{background:var(--cream);font-size:11px;text-transform:uppercase;color:v
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
 
@@ -333,7 +349,9 @@ var DEFAULT_DATA = {
     adminPassword:"beverly2026",
     heroTitle:"L'élégance au quotidien",
     heroSubtitle:"Découvrez la nouvelle collection Beverly Boutik, pensée pour la femme moderne et raffinée.",
-    aboutText:"Beverly Boutik est une boutique ivoirienne dédiée à la mode féminine. Nous sélectionnons pour vous des vêtements élégants, confortables et intemporels, pour que vous rayonniez au quotidien."
+    aboutText:"Beverly Boutik est une boutique ivoirienne dédiée à la mode féminine. Nous sélectionnons pour vous des vêtements élégants, confortables et intemporels, pour que vous rayonniez au quotidien.",
+    openingHours:"Lundi - Samedi : 9h00 - 19h00\nDimanche : Fermé",
+    lowStockThreshold:3
   },
   categories:[
     {id:"c1", name:"Robes", slug:"robes"},
@@ -385,29 +403,26 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var fbDb = firebase.database();
 
-/* Hébergement d'images (upload depuis la galerie du téléphone).
-   Clé gratuite obtenue sur https://api.imgbb.com/ (aucune carte bancaire requise). */
-var IMGBB_API_KEY = "COLLE_TA_CLE_IMGBB_ICI";
-function uploadImageToImgbb(file, callback){
-  if(!IMGBB_API_KEY || IMGBB_API_KEY === "COLLE_TA_CLE_IMGBB_ICI"){
-    callback(new Error("Clé ImgBB non configurée. Contactez le développeur du site."));
-    return;
-  }
-  var reader = new FileReader();
-  reader.onerror = function(){ callback(new Error("Impossible de lire le fichier.")); };
-  reader.onload = function(){
-    var base64 = String(reader.result).split(",")[1];
-    var formData = new FormData();
-    formData.append("image", base64);
-    fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, { method:"POST", body:formData })
-      .then(function(res){ return res.json(); })
-      .then(function(data){
-        if(data && data.success && data.data && data.data.url){ callback(null, data.data.url); }
-        else { callback(new Error("Échec de l'envoi de l'image.")); }
-      })
-      .catch(function(err){ callback(err); });
-  };
-  reader.readAsDataURL(file);
+/* Hébergement d'images (upload depuis la galerie du téléphone) via
+   Supabase Storage — gratuit, sans carte bancaire requise. */
+var SUPABASE_URL = "https://rpzjwdhkgahedhpbctsk.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwemp3ZGhrZ2FoZWRocGJjdHNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NTg0MzYsImV4cCI6MjEwNDIzNDQzNn0.-wHFHa1QKWW1izszXhiq2pjDKigugpSbBXPANsX6x2Q";
+var SUPABASE_BUCKET = "beverly-images";
+var sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function uploadImageToSupabase(file, callback){
+  var ext = "";
+  var dotIdx = file.name.lastIndexOf(".");
+  if(dotIdx !== -1){ ext = file.name.substring(dotIdx); }
+  var path = "products/" + Date.now() + "-" + Math.floor(Math.random()*100000) + ext;
+  sbClient.storage.from(SUPABASE_BUCKET).upload(path, file, { cacheControl:"3600", upsert:false })
+    .then(function(res){
+      if(res.error){ callback(res.error); return; }
+      var pub = sbClient.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+      if(pub && pub.data && pub.data.publicUrl){ callback(null, pub.data.publicUrl); }
+      else { callback(new Error("Impossible de récupérer l'URL de l'image.")); }
+    })
+    .catch(function(err){ callback(err); });
 }
 
 function loadCart(){
@@ -543,7 +558,71 @@ function refreshHeaderInfo(){
   $("#footer-address").textContent = DB.settings.address;
   $("#footer-year").textContent = new Date().getFullYear();
   document.title = DB.settings.shopName + " – Vêtements Femme | " + DB.settings.slogan;
+  updateSocialLinks();
+  updateStockTicker();
 }
+
+/* ============ RÉSEAUX SOCIAUX ============ */
+function updateSocialLinks(){
+  var map = [
+    {key:"tiktok", sel:".social-tiktok", icon:"🎵"},
+    {key:"facebook", sel:".social-facebook", icon:"📘"},
+    {key:"instagram", sel:".social-instagram", icon:"📷"}
+  ];
+  map.forEach(function(item){
+    var url = DB.settings[item.key];
+    $all(item.sel).forEach(function(a){
+      if(url){ a.setAttribute("href", url); a.classList.remove("hidden"); }
+      else { a.classList.add("hidden"); }
+    });
+  });
+  $all(".social-whatsapp").forEach(function(a){
+    a.setAttribute("href", waLink(genericWaMessage()));
+  });
+}
+
+/* ============ ALERTE STOCK FAIBLE (bannière + voix) ============ */
+function lowStockList(){
+  var threshold = (DB.settings.lowStockThreshold !== undefined) ? Number(DB.settings.lowStockThreshold) : 3;
+  return DB.products.filter(function(p){ return p.status === "disponible" && p.stock > 0 && p.stock <= threshold; });
+}
+function updateStockTicker(){
+  var el = $("#stock-ticker");
+  var track = $("#stock-ticker-track");
+  var list = lowStockList();
+  if(list.length === 0){
+    el.classList.add("hidden");
+    track.innerHTML = "";
+    return;
+  }
+  var html = "";
+  list.forEach(function(p){
+    html += "<span>🔥 Attention, il ne reste que " + p.stock + " " + esc(p.name) + " en stock !</span>";
+  });
+  html += html; /* dupliqué pour un défilement continu sans trou */
+  track.innerHTML = html;
+  el.classList.remove("hidden");
+}
+function speakLowStockAlert(){
+  var list = lowStockList();
+  if(list.length === 0){ toast("Aucune alerte de stock pour le moment."); return; }
+  if(!("speechSynthesis" in window)){ toast("La lecture vocale n'est pas prise en charge sur cet appareil."); return; }
+  var phrase = list.map(function(p){
+    return "Attention, il ne reste que " + p.stock + " " + p.name + " en stock.";
+  }).join(" ");
+  try{
+    var utter = new SpeechSynthesisUtterance(phrase);
+    utter.lang = "fr-FR";
+    utter.rate = 0.95;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }catch(e){
+    toast("Impossible de lire l'alerte à voix haute.");
+  }
+}
+document.addEventListener("click", function(e){
+  if(e.target && e.target.id === "ticker-speak-btn"){ speakLowStockAlert(); }
+});
 function doSearch(val){
   val = (val||"").trim();
   if(val.length === 0){ location.hash = "#/shop"; return; }
@@ -661,7 +740,19 @@ route("/", function(){
     '</div>' +
   '</section>';
 
+  html += '<section class="section" style="text-align:center;">' +
+    '<h2>Suivez-nous</h2>' +
+    '<p>Restez connectée aux dernières nouveautés Beverly Boutik.</p>' +
+    '<div class="social-row-lg">' +
+      '<a href="#" target="_blank" class="social-tiktok hidden" title="TikTok">🎵</a>' +
+      '<a href="#" target="_blank" class="social-facebook hidden" title="Facebook">📘</a>' +
+      '<a href="#" target="_blank" class="social-instagram hidden" title="Instagram">📷</a>' +
+      '<a href="#" target="_blank" class="social-whatsapp" title="WhatsApp">💬</a>' +
+    '</div>' +
+  '</section>';
+
   $("#main-view").innerHTML = html;
+  updateSocialLinks();
 });
 
 /* ============ PAGE: SHOP ============ */
@@ -1028,6 +1119,7 @@ route("/about", function(){
   '</div>';
 });
 route("/contact", function(){
+  var hoursHtml = esc(DB.settings.openingHours || "").split("\n").join("<br>");
   $("#main-view").innerHTML = '<div class="section">' +
     '<div class="breadcrumb"><a href="#/">Accueil</a> / Contact</div>' +
     '<h1 class="section-title-lg">Contactez-nous</h1>' +
@@ -1035,6 +1127,7 @@ route("/contact", function(){
       '<p><strong>Téléphone / WhatsApp :</strong> ' + esc(DB.settings.phone) + '</p>' +
       '<p><strong>Email :</strong> ' + esc(DB.settings.email) + '</p>' +
       '<p><strong>Adresse :</strong> ' + esc(DB.settings.address) + '</p>' +
+      (hoursHtml ? '<p><strong>Horaires d\'ouverture :</strong><br>' + hoursHtml + '</p>' : '') +
       '<a href="'+waLink(genericWaMessage())+'" target="_blank" class="btn" style="background:#25D366;color:#fff;">💬 Nous écrire sur WhatsApp</a>' +
     '</div>' +
   '</div>';
@@ -1134,7 +1227,7 @@ function renderAdminTabContent(){
 function adminDashboardHtml(){
   var orders = ordersCache;
   var revenue = orders.reduce(function(s,o){ return s + o.total; }, 0);
-  var lowStock = DB.products.filter(function(p){ return p.stock > 0 && p.stock <= 3; });
+  var lowStock = lowStockList();
   var outStock = DB.products.filter(function(p){ return p.status === "rupture" || p.stock === 0; });
   var recent = orders.slice(0,5);
   var html = '<h2>Tableau de bord</h2><div class="stat-grid">' +
@@ -1283,7 +1376,7 @@ function bindAdminProductForm(editId){
     if(!file){ return; }
     var statusEl = $("#pf-upload-status");
     statusEl.textContent = "Envoi en cours…";
-    uploadImageToImgbb(file, function(err, url){
+    uploadImageToSupabase(file, function(err, url){
       if(err){
         statusEl.textContent = "";
         toast("Erreur : " + err.message);
@@ -1416,7 +1509,9 @@ function renderAdminSettings(el){
     '<div class="form-row">' +
       '<div class="form-group"><label>Frais de livraison (FCFA)</label><input type="number" class="field-input" id="st-delivery" value="'+esc(s.deliveryFee)+'"></div>' +
       '<div class="form-group"><label>Mot de passe admin</label><input class="field-input" id="st-password" value="'+esc(s.adminPassword)+'"></div>' +
+      '<div class="form-group"><label>Seuil de stock faible</label><input type="number" min="1" class="field-input" id="st-threshold" value="'+esc(s.lowStockThreshold!==undefined?s.lowStockThreshold:3)+'"></div>' +
     '</div>' +
+    '<div class="form-group"><label>Horaires d\'ouverture (une ligne par jour/plage)</label><textarea class="field-input" id="st-hours">'+esc(s.openingHours||"")+'</textarea></div>' +
     '<div class="form-row">' +
       '<div class="form-group"><label>Facebook (URL)</label><input class="field-input" id="st-fb" value="'+esc(s.facebook)+'"></div>' +
       '<div class="form-group"><label>Instagram (URL)</label><input class="field-input" id="st-ig" value="'+esc(s.instagram)+'"></div>' +
@@ -1436,6 +1531,8 @@ function renderAdminSettings(el){
     s.address = $("#st-address").value;
     s.deliveryFee = Number($("#st-delivery").value)||0;
     s.adminPassword = $("#st-password").value;
+    s.lowStockThreshold = Number($("#st-threshold").value)||3;
+    s.openingHours = $("#st-hours").value;
     s.facebook = $("#st-fb").value;
     s.instagram = $("#st-ig").value;
     s.tiktok = $("#st-tk").value;
