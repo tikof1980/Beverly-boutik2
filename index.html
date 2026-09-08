@@ -81,6 +81,25 @@ nav#main-nav a.active,nav#main-nav a:hover{background:var(--terracotta);color:#f
 @keyframes ticker-scroll{from{transform:translateX(0);}to{transform:translateX(-100%);}}
 .ticker-speak-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,0.25);color:#fff;font-size:15px;z-index:2;}
 
+/* ASSISTANTE IA */
+.ai-toggle-btn{position:fixed;bottom:20px;left:16px;z-index:60;width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--terracotta),#c98a63);color:#fff;font-size:24px;box-shadow:0 6px 16px rgba(0,0,0,0.25);}
+.ai-chat-panel{position:fixed;bottom:20px;left:16px;right:16px;z-index:70;max-width:400px;height:70vh;max-height:560px;background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden;}
+.ai-chat-header{background:var(--terracotta-dark);color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;}
+.ai-chat-header-info{display:flex;align-items:center;gap:10px;}
+.ai-chat-avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.ai-chat-title{font-weight:700;font-size:14px;}
+.ai-chat-subtitle{font-size:11px;color:#f3e2ce;}
+.ai-chat-close{background:none;border:none;color:#fff;font-size:18px;padding:4px;}
+.ai-chat-messages{flex:1;overflow-y:auto;padding:14px;background:var(--cream);display:flex;flex-direction:column;gap:10px;}
+.ai-msg{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.4;}
+.ai-msg.bot{align-self:flex-start;background:#fff;border-bottom-left-radius:4px;box-shadow:var(--shadow-sm);}
+.ai-msg.user{align-self:flex-end;background:var(--terracotta);color:#fff;border-bottom-right-radius:4px;}
+.ai-msg.typing{align-self:flex-start;background:#fff;color:var(--ink-soft);font-style:italic;}
+.ai-chat-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid var(--cream-dark);background:#fff;}
+.ai-chat-input{flex:1;border:1px solid var(--cream-dark);border-radius:24px;padding:9px 14px;font-size:13.5px;outline:none;}
+.ai-chat-send{width:38px;height:38px;border-radius:50%;border:none;background:var(--terracotta);color:#fff;font-size:16px;flex-shrink:0;}
+@media(max-width:480px){ .ai-chat-panel{left:8px;right:8px;bottom:8px;height:75vh;} }
+
 /* CATALOGUE (page QR code) */
 .catalogue-hero{background:linear-gradient(135deg,var(--terracotta-dark),var(--terracotta));color:#fff;padding:36px 18px;text-align:center;}
 .catalogue-contact-bar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
@@ -333,6 +352,26 @@ table th{background:var(--cream);font-size:11px;text-transform:uppercase;color:v
 </footer>
 
 <a id="wa-float" class="wa-float" href="#" title="Commander sur WhatsApp">💬</a>
+
+<button id="ai-toggle-btn" class="ai-toggle-btn" title="Assistante Beverly Boutik">✨</button>
+<div id="ai-chat-panel" class="ai-chat-panel hidden">
+  <div class="ai-chat-header">
+    <div class="ai-chat-header-info">
+      <div class="ai-chat-avatar">✨</div>
+      <div>
+        <div class="ai-chat-title">Assistante Beverly Boutik</div>
+        <div class="ai-chat-subtitle">En ligne · répond instantanément</div>
+      </div>
+    </div>
+    <button id="ai-chat-close" class="ai-chat-close">✕</button>
+  </div>
+  <div id="ai-chat-messages" class="ai-chat-messages"></div>
+  <div class="ai-chat-input-row">
+    <input type="text" id="ai-chat-input" class="ai-chat-input" placeholder="Posez votre question…">
+    <button id="ai-chat-send" class="ai-chat-send">➤</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -430,6 +469,107 @@ function uploadImageToSupabase(file, callback){
     })
     .catch(function(err){ callback(err); });
 }
+
+/* ============ ASSISTANTE IA (Google Gemini) ============ */
+var GEMINI_API_KEY = "AQ.Ab8RN6IsyQm7BWkyppwCx5uiNJBN-CXZcXECuHf3khkO0XsWhg";
+var GEMINI_MODEL = "gemini-3.8-flash";
+var GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
+var aiChatHistory = [];
+var aiChatOpen = false;
+
+function buildShopSystemPrompt(){
+  var s = DB.settings;
+  var lines = [];
+  lines.push("Tu es l'assistante virtuelle officielle de la boutique en ligne " + s.shopName + " (\"" + s.slogan + "\"), une boutique de vêtements féminins basée en Côte d'Ivoire.");
+  lines.push("Tu réponds toujours en français, avec un ton chaleureux, professionnel et commercial, comme une vendeuse compétente qui a envie d'aider la cliente à trouver ce qu'elle cherche et à passer commande.");
+  lines.push("Coordonnées de la boutique — Téléphone/WhatsApp : " + s.phone + " | Email : " + s.email + " | Adresse : " + s.address + ".");
+  if(s.openingHours){ lines.push("Horaires d'ouverture : " + s.openingHours.replace(/\n/g, " ; ") + "."); }
+  lines.push("Frais de livraison : " + fmtPrice(s.deliveryFee) + ".");
+  lines.push("Voici le catalogue actuel et réel de la boutique (ne propose et n'invente JAMAIS un produit qui n'est pas dans cette liste, et donne toujours le prix exact indiqué) :");
+  DB.products.forEach(function(p){
+    var cat = getCategoryById(p.category);
+    var stockTxt = p.status === "rupture" || p.stock === 0 ? "RUPTURE DE STOCK" : ("stock disponible: " + p.stock);
+    var sizesTxt = (p.sizes && p.sizes.length) ? ("tailles: " + p.sizes.join(", ")) : "";
+    var priceTxt = p.oldPrice && p.oldPrice > p.price ? (fmtPrice(p.price) + " (promo, prix normal " + fmtPrice(p.oldPrice) + ")") : fmtPrice(p.price);
+    lines.push("- " + p.name + " | catégorie: " + (cat?cat.name:"") + " | prix: " + priceTxt + " | " + stockTxt + (sizesTxt ? (" | " + sizesTxt) : ""));
+  });
+  lines.push("Règles importantes : si un produit est en rupture de stock, dis-le clairement et propose une alternative similaire du catalogue si possible. Encourage toujours la cliente à finaliser sa commande sur WhatsApp au " + s.phone + " ou directement sur le site. Si on te demande quelque chose hors sujet ou que tu ne sais pas, redirige poliment vers WhatsApp. Réponds de façon concise (quelques phrases maximum), pas de longues listes sauf si on te le demande explicitement.");
+  return lines.join("\n");
+}
+
+function toggleAiChat(forceOpen){
+  var panel = $("#ai-chat-panel");
+  aiChatOpen = (forceOpen !== undefined) ? forceOpen : !aiChatOpen;
+  if(aiChatOpen){
+    panel.classList.remove("hidden");
+    if(aiChatHistory.length === 0){
+      addAiMessage("bot", "Bonjour ! Je suis l'assistante virtuelle de " + (DB && DB.settings ? DB.settings.shopName : "Beverly Boutik") + ". Je peux vous renseigner sur nos produits, prix, tailles, stocks et horaires. Que cherchez-vous aujourd'hui ?");
+    }
+    setTimeout(function(){ $("#ai-chat-input").focus(); }, 100);
+  } else {
+    panel.classList.add("hidden");
+  }
+}
+function addAiMessage(role, text){
+  var wrap = $("#ai-chat-messages");
+  var div = document.createElement("div");
+  div.className = "ai-msg " + (role === "user" ? "user" : "bot");
+  div.textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function sendAiMessage(){
+  var input = $("#ai-chat-input");
+  var text = input.value.trim();
+  if(!text || !DB){ return; }
+  input.value = "";
+  addAiMessage("user", text);
+  aiChatHistory.push({role:"user", parts:[{text:text}]});
+
+  var wrap = $("#ai-chat-messages");
+  var typingDiv = document.createElement("div");
+  typingDiv.className = "ai-msg typing";
+  typingDiv.id = "ai-typing-indicator";
+  typingDiv.textContent = "L'assistante écrit…";
+  wrap.appendChild(typingDiv);
+  wrap.scrollTop = wrap.scrollHeight;
+
+  fetch(GEMINI_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: buildShopSystemPrompt() }] },
+      contents: aiChatHistory
+    })
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    var indicator = $("#ai-typing-indicator");
+    if(indicator){ indicator.remove(); }
+    var reply = "";
+    if(data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]){
+      reply = data.candidates[0].content.parts[0].text || "";
+    }
+    if(!reply){
+      reply = "Désolée, je n'ai pas pu traiter votre demande. Contactez-nous directement sur WhatsApp au " + DB.settings.phone + ".";
+    }
+    addAiMessage("bot", reply);
+    aiChatHistory.push({role:"model", parts:[{text:reply}]});
+  })
+  .catch(function(){
+    var indicator = $("#ai-typing-indicator");
+    if(indicator){ indicator.remove(); }
+    addAiMessage("bot", "Une erreur est survenue. Contactez-nous directement sur WhatsApp au " + DB.settings.phone + ".");
+  });
+}
+document.addEventListener("click", function(e){
+  if(e.target && e.target.id === "ai-toggle-btn"){ toggleAiChat(); }
+  if(e.target && e.target.id === "ai-chat-close"){ toggleAiChat(false); }
+  if(e.target && e.target.id === "ai-chat-send"){ sendAiMessage(); }
+});
+document.addEventListener("keydown", function(e){
+  if(e.target && e.target.id === "ai-chat-input" && e.key === "Enter"){ sendAiMessage(); }
+});
 
 function loadCart(){
   try{
