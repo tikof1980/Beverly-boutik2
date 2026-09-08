@@ -551,15 +551,16 @@ function sendAiMessage(){
       reply = data.candidates[0].content.parts[0].text || "";
     }
     if(!reply){
-      reply = "Désolée, je n'ai pas pu traiter votre demande. Contactez-nous directement sur WhatsApp au " + DB.settings.phone + ".";
+      var debugMsg = (data && data.error && data.error.message) ? data.error.message : JSON.stringify(data).substring(0,300);
+      reply = "[DEBUG] " + debugMsg;
     }
     addAiMessage("bot", reply);
     aiChatHistory.push({role:"model", parts:[{text:reply}]});
   })
-  .catch(function(){
+  .catch(function(err){
     var indicator = $("#ai-typing-indicator");
     if(indicator){ indicator.remove(); }
-    addAiMessage("bot", "Une erreur est survenue. Contactez-nous directement sur WhatsApp au " + DB.settings.phone + ".");
+    addAiMessage("bot", "[DEBUG] " + err.message);
   });
 }
 document.addEventListener("click", function(e){
