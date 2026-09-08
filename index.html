@@ -612,15 +612,35 @@ function speakLowStockAlert(){
   var phrase = list.map(function(p){
     return "Dépêchez-vous, il ne reste que " + p.stock + " " + p.name + ". Commandez vite avant rupture.";
   }).join(" ");
+  speakText(phrase);
+}
+function speakAdminLowStockAlert(){
+  var list = lowStockList();
+  if(list.length === 0){ return; }
+  var phrase = "Alerte stock faible. " + list.map(function(p){
+    return "Référence " + p.ref + ", " + p.name + ", il reste seulement " + p.stock + " en stock.";
+  }).join(" ");
+  speakText(phrase);
+}
+function speakText(phrase){
   try{
     var utter = new SpeechSynthesisUtterance(phrase);
     utter.lang = "fr-FR";
     utter.rate = 0.95;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
-  }catch(e){
-    toast("Impossible de lire l'alerte à voix haute.");
-  }
+  }catch(e){}
+}
+var hasAutoSpokenAlert = false;
+function maybeAutoSpeakAlerts(){
+  if(hasAutoSpokenAlert){ return; }
+  if(!("speechSynthesis" in window)){ return; }
+  if(lowStockList().length === 0){ return; }
+  hasAutoSpokenAlert = true;
+  setTimeout(function(){
+    if(isAdminLoggedIn()){ speakAdminLowStockAlert(); }
+    else { speakLowStockAlert(); }
+  }, 900);
 }
 document.addEventListener("click", function(e){
   if(e.target && e.target.id === "ticker-speak-btn"){ speakLowStockAlert(); }
@@ -1182,6 +1202,7 @@ function renderAdminLogin(){
       sessionStorage.setItem(SESSION_KEY, "1");
       adminActiveTab = "dashboard";
       renderAdminShell();
+      speakAdminLowStockAlert();
     } else {
       $("#admin-login-err").textContent = "Mot de passe incorrect.";
     }
@@ -1587,6 +1608,7 @@ if("serviceWorker" in navigator){
    l'admin (sur n'importe quel appareil) est reçue ici et déclenche un
    nouveau rendu pour tout le monde. */
 fbDb.ref(FB_CATALOG_PATH).on("value", function(snapshot){
+  var isFirstLoad = !dataReady;
   var val = snapshot.val();
   if(val){
     DB = val;
@@ -1597,6 +1619,7 @@ fbDb.ref(FB_CATALOG_PATH).on("value", function(snapshot){
   dataReady = true;
   refreshHeaderInfo();
   render();
+  if(isFirstLoad){ maybeAutoSpeakAlerts(); }
 }, function(err){
   dataReady = false;
   $("#main-view").innerHTML = '<div class="section"><div class="empty-state"><h2>Connexion à la boutique impossible</h2><p>'+esc(err.message)+'</p><p>Vérifiez votre connexion internet et réessayez.</p></div></div>';
