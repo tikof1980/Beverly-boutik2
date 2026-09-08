@@ -142,8 +142,10 @@ footer{background:var(--terracotta-dark);color:#f3e2ce;padding:36px 18px 18px;ma
 .footer-bottom{text-align:center;font-size:12px;color:#d6b795;margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.12);}
 .social-row{display:flex;gap:10px;margin-top:8px;}
 .social-row a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.social-row a svg{display:block;}
 .social-row-lg{display:flex;gap:14px;justify-content:center;margin-top:14px;}
 .social-row-lg a{width:52px;height:52px;border-radius:50%;background:var(--terracotta);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--shadow-sm);}
+.social-row-lg a svg{display:block;}
 
 /* FLOATING WHATSAPP */
 .wa-float{position:fixed;bottom:20px;right:16px;z-index:60;background:#25D366;color:#fff;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 6px 16px rgba(0,0,0,0.25);}
@@ -297,10 +299,10 @@ table th{background:var(--cream);font-size:11px;text-transform:uppercase;color:v
       <h4>BEVERLY BOUTIK</h4>
       <p>L'élégance au quotidien. Vêtements féminins élégants et modernes, livrés partout en Côte d\'Ivoire.</p>
       <div class="social-row">
-        <a href="#" target="_blank" class="social-tiktok hidden" title="TikTok">🎵</a>
-        <a href="#" target="_blank" class="social-facebook hidden" title="Facebook">📘</a>
-        <a href="#" target="_blank" class="social-instagram hidden" title="Instagram">📷</a>
-        <a href="#" target="_blank" class="social-whatsapp" title="WhatsApp">💬</a>
+        <a href="#" target="_blank" class="social-tiktok hidden" title="TikTok"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.65h-3.03v13.6c0 1.65-1.34 3-2.99 3-1.65 0-2.99-1.35-2.99-3s1.34-3 2.99-3c.31 0 .61.05.9.13V9.83c-.3-.04-.6-.06-.9-.06-3.33 0-6.02 2.7-6.02 6.03S5.58 21.83 8.91 21.83s6.02-2.7 6.02-6.03V9.01a8.34 8.34 0 0 0 4.9 1.58V7.56c-1.15 0-2.21-.38-3.06-1.03a5.4 5.4 0 0 1-.17-.71z"/></svg></a>
+        <a href="#" target="_blank" class="social-facebook hidden" title="Facebook"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg></a>
+        <a href="#" target="_blank" class="social-instagram hidden" title="Instagram"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1"/></svg></a>
+        <a href="#" target="_blank" class="social-whatsapp" title="WhatsApp"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.28 1.19-1.77 1.24-.45.05-.9.24-3.03-.63-2.57-1.05-4.22-3.63-4.35-3.8-.13-.17-1.04-1.38-1.04-2.64 0-1.25.66-1.86.9-2.11.24-.25.52-.31.7-.31h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.28.02.45-.09.17-.14.28-.27.43-.14.16-.29.36-.41.48-.14.14-.28.29-.12.56.16.28.71 1.18 1.53 1.91 1.05.94 1.93 1.23 2.21 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.18-.28.36-.23.6-.14.25.09 1.58.75 1.85.88.27.14.45.2.51.32.07.12.07.66-.16 1.28z"/></svg></a>
       </div>
     </div>
     <div>
@@ -597,7 +599,7 @@ function updateStockTicker(){
   }
   var html = "";
   list.forEach(function(p){
-    html += "<span>🔥 Attention, il ne reste que " + p.stock + " " + esc(p.name) + " en stock !</span>";
+    html += "<span>🔥 Dépêchez-vous, il ne reste que " + p.stock + " " + esc(p.name) + " ! Commandez vite avant rupture.</span>";
   });
   html += html; /* dupliqué pour un défilement continu sans trou */
   track.innerHTML = html;
@@ -608,7 +610,7 @@ function speakLowStockAlert(){
   if(list.length === 0){ toast("Aucune alerte de stock pour le moment."); return; }
   if(!("speechSynthesis" in window)){ toast("La lecture vocale n'est pas prise en charge sur cet appareil."); return; }
   var phrase = list.map(function(p){
-    return "Attention, il ne reste que " + p.stock + " " + p.name + " en stock.";
+    return "Dépêchez-vous, il ne reste que " + p.stock + " " + p.name + ". Commandez vite avant rupture.";
   }).join(" ");
   try{
     var utter = new SpeechSynthesisUtterance(phrase);
@@ -744,10 +746,10 @@ route("/", function(){
     '<h2>Suivez-nous</h2>' +
     '<p>Restez connectée aux dernières nouveautés Beverly Boutik.</p>' +
     '<div class="social-row-lg">' +
-      '<a href="#" target="_blank" class="social-tiktok hidden" title="TikTok">🎵</a>' +
-      '<a href="#" target="_blank" class="social-facebook hidden" title="Facebook">📘</a>' +
-      '<a href="#" target="_blank" class="social-instagram hidden" title="Instagram">📷</a>' +
-      '<a href="#" target="_blank" class="social-whatsapp" title="WhatsApp">💬</a>' +
+      '<a href="#" target="_blank" class="social-tiktok hidden" title="TikTok"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M16.6 5.82c-1.02-.9-1.66-2.2-1.66-3.65h-3.03v13.6c0 1.65-1.34 3-2.99 3-1.65 0-2.99-1.35-2.99-3s1.34-3 2.99-3c.31 0 .61.05.9.13V9.83c-.3-.04-.6-.06-.9-.06-3.33 0-6.02 2.7-6.02 6.03S5.58 21.83 8.91 21.83s6.02-2.7 6.02-6.03V9.01a8.34 8.34 0 0 0 4.9 1.58V7.56c-1.15 0-2.21-.38-3.06-1.03a5.4 5.4 0 0 1-.17-.71z"/></svg></a>' +
+      '<a href="#" target="_blank" class="social-facebook hidden" title="Facebook"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/></svg></a>' +
+      '<a href="#" target="_blank" class="social-instagram hidden" title="Instagram"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1"/></svg></a>' +
+      '<a href="#" target="_blank" class="social-whatsapp" title="WhatsApp"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.07L2 22l5.06-1.33A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.2 14.2c-.22.62-1.28 1.19-1.77 1.24-.45.05-.9.24-3.03-.63-2.57-1.05-4.22-3.63-4.35-3.8-.13-.17-1.04-1.38-1.04-2.64 0-1.25.66-1.86.9-2.11.24-.25.52-.31.7-.31h.5c.16 0 .38-.03.58.44.22.53.75 1.83.82 1.96.07.13.11.28.02.45-.09.17-.14.28-.27.43-.14.16-.29.36-.41.48-.14.14-.28.29-.12.56.16.28.71 1.18 1.53 1.91 1.05.94 1.93 1.23 2.21 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.18-.28.36-.23.6-.14.25.09 1.58.75 1.85.88.27.14.45.2.51.32.07.12.07.66-.16 1.28z"/></svg></a>' +
     '</div>' +
   '</section>';
 
@@ -1237,6 +1239,13 @@ function adminDashboardHtml(){
     '<div class="stat-card"><div class="num">'+lowStock.length+'</div><div class="lbl">Stock faible</div></div>' +
     '<div class="stat-card"><div class="num">'+outStock.length+'</div><div class="lbl">Ruptures</div></div>' +
   '</div>';
+  if(lowStock.length > 0){
+    html += '<div class="panel" style="border-left:4px solid var(--danger);"><h3 style="margin-top:0;">⚠️ Alerte stock (détail admin)</h3><table><tr><th>Réf.</th><th>Produit</th><th>Stock restant</th></tr>';
+    lowStock.forEach(function(p){
+      html += '<tr><td>'+esc(p.ref)+'</td><td>'+esc(p.name)+'</td><td>'+p.stock+'</td></tr>';
+    });
+    html += '</table></div>';
+  }
   html += '<h3>Commandes récentes</h3><div class="table-wrap"><table><tr><th>Client</th><th>Total</th><th>Statut</th><th>Date</th></tr>';
   if(recent.length === 0){ html += '<tr><td colspan="4">Aucune commande pour le moment.</td></tr>'; }
   recent.forEach(function(o){
@@ -1245,6 +1254,7 @@ function adminDashboardHtml(){
   html += '</table></div>';
   return html;
 }
+
 
 /* --- Admin: Products --- */
 function renderAdminProducts(el, editId){
